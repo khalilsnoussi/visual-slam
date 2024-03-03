@@ -84,7 +84,7 @@ class SLAM():
         
         # Find the essential matrix using RANSAC
         E, mask = cv.findEssentialMat(pts1, pts2, focal=self.frame1.K[0,0], pp=(self.frame1.K[0,2],self.frame1.K[1,2]), method=cv.RANSAC, prob=0.999, threshold=1.0)
-        return recoverPose(E, pts1, pts2, self.frame1.K[:3,:3])
+        return recoverPose(E, pts1, pts2, self.frame1.K[:3,:3]) # returns R,t as np.ndarray, it can be computed by svd decomposition of E matrix
     
     def draw_keypoints(self):
         if self.matches is not None:

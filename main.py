@@ -18,10 +18,10 @@ frame1 = Frame('./data/dataset/sequences/00', img_id="000001")
 #frame.show()
 slam = SLAM(frames=[frame, frame1])
 R,t = slam.feature_extractor()
+print(R)
 
 
-
-#slam.draw_keypoints()
+slam.draw_keypoints()
 
 
 
