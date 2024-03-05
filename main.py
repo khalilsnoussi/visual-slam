@@ -1,20 +1,40 @@
 import numpy as np
 import cv2 as cv
 from slam import Frame, SLAM
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+import os
+
+myjet = np.array([[0.        , 0.        , 0.5       ],
+                  [0.        , 0.        , 0.99910873],
+                  [0.        , 0.37843137, 1.        ],
+                  [0.        , 0.83333333, 1.        ],
+                  [0.30044276, 1.        , 0.66729918],
+                  [0.66729918, 1.        , 0.30044276],
+                  [1.        , 0.90123457, 0.        ],
+                  [1.        , 0.48002905, 0.        ],
+                  [0.99910873, 0.07334786, 0.        ],
+                  [0.5       , 0.        , 0.        ]])
 
 
+slam = SLAM()
 
 
-
-
-
+default_path = './data/dataset/sequences/00/image_2/'
+frames_id = os.listdir(default_path)
+frames  = []
+for i in range(len(frames_id)):
+    path  = default_path + frames_id[i]
+    frame = Frame(path)
+    frames.append(frame)
+    if len(frames) > 1:
+        R,t = slam.feature_extractor(frame1=frames[-2], frame2=frames[-1])
+        slam.draw_keypoints()
+        print(R)
+    ##frame.show()
 
 
 #creating a list of Frame objects
-slam= SLAM()
-slam.feature_extractor()
+#slam= SLAM()
+#slam.feature_extractor()
 
 
 #print(frame.width, frame.height, frame.channels)

@@ -1,7 +1,18 @@
 import numpy as np
 import cv2 as cv
-import os 
+import os
+from constants import K
 
+myjet = np.array([[0.        , 0.        , 0.5       ],
+                  [0.        , 0.        , 0.99910873],
+                  [0.        , 0.37843137, 1.        ],
+                  [0.        , 0.83333333, 1.        ],
+                  [0.30044276, 1.        , 0.66729918],
+                  [0.66729918, 1.        , 0.30044276],
+                  [1.        , 0.90123457, 0.        ],
+                  [1.        , 0.48002905, 0.        ],
+                  [0.99910873, 0.07334786, 0.        ],
+                  [0.5       , 0.        , 0.        ]])
 
 
 
@@ -50,50 +61,44 @@ class Frame():
 
 class SLAM():
     
-    def __init__(self, sequence : str  = "00") -> None:
+    def __init__(self) -> None:
         """_summary_
 
         Args:
             sequence (str): name of the sequence from kitti that you want to use SLAM on. ie : 00, 01 or 02 etc.
         """
-        self.default_path = "./data/dataset/sequences/{i}/".format(i=sequence)
-        
-        self.frames_ids = os.listdir(self.default_path + "/image_2/")
-        self.frames = []
-        
-        for frame_id in self.frames_ids:
-            frame = Frame(self.default_path + "/image_2/" + frame_id)
-            self.frames.append(frame)
-            
-        with open(self.default_path+"/calib.txt", 'r') as f:
-            calib_data= f.readlines()
-            P2_line = calib_data[2].strip().split(' ')
-            P2_matrix = [float(value) for value in P2_line[1:]]  # Skip the first element (contains 'P2:')
-            self.K = np.array(P2_matrix).reshape(3, 4)
-    
-    
-    
-    def feature_extractor(self) -> None:
-        orb = cv.ORB_create()
+        self.K = K  #camera matrix
+        self.frame1 = None
+        self.frame2 = None   
+
+    def feature_extractor(self ,frame1 : Frame, frame2 : Frame) -> None:
+        self.frame1 = frame1
+        self.frame2 = frame2
+        orb = cv.ORB_create(nfeatures=3000)
         bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
-        for i in range(1,len(self.frames)):
-            frame1 = self.frames[i-1]
-            frame2 = self.frames[i]
-            keypoints1, descriptors1 = orb.detectAndCompute(frame1.img, None)
-            keypoints2, descriptors2 = orb.detectAndCompute(frame2.img, None)
-            matches = bf.match(descriptors1, descriptors2)
+        
+        
+        self.keypoints1, descriptors1 = orb.detectAndCompute(frame1.img, None)
+        self.keypoints2, descriptors2 = orb.detectAndCompute(frame2.img, None)
+        self.matches = bf.match(descriptors1, descriptors2)
+        
+        
             # Extract matched keypoints
-            pts1 = np.float32([keypoints1[m.queryIdx].pt for m in matches])
-            pts2 = np.float32([keypoints2[m.trainIdx].pt for m in matches])   
-            # Find the essential matrix using RANSAC
-            E, mask = cv.findEssentialMat(pts1, pts2, focal=self.K[0,0], pp=(self.K[0,2],self.K[1,2]), method=cv.RANSAC, prob=0.999, threshold=1.0)
+        self.pts1 = np.float32([self.keypoints1[m.queryIdx].pt for m in self.matches])
+        self.pts2 = np.float32([self.keypoints2[m.trainIdx].pt for m in self.matches])
+        
+        self.matched_kp = [self.keypoints2[m.trainIdx] for m in self.matches]
+        # Find the essential matrix using RANSAC
+        E, mask = cv.findEssentialMat(self.pts1, self.pts2, focal=self.K[0,0], pp=(self.K[0,2],self.K[1,2]), method=cv.RANSAC, prob=0.999, threshold=1.0)
              #returns R,t as np.ndarray, it can be computed by svd decomposition of E matrix
-            R,t  = recoverPose(E, pts1, pts2, self.K[:3,:3])
-            print(R)
+        R,t  = recoverPose(E, self.pts1, self.pts2, self.K[:3,:3])
+        return R,t
     
     def draw_keypoints(self):
         if self.matches is not None:
-            img = cv.drawMatches(self.frame1.img, self.frame1.keypoints, self.frame2.img, self.frame2.keypoints, self.matches[:10], None, flags=cv.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+            #img = cv.drawKeypoints(self.frame2.img, self.matched_kp, None, color=(0,255,0), flags=0)
+            img = cv.line(self.frame2.img, np.array([self.pts1], dtype=np.int32), False,color=(0,0,255), thickness=1, lineType=16)
+            
             cv.imshow("window",img)
             cv.waitKey(0)
             cv.destroyAllWindows()
