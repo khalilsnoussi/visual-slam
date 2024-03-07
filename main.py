@@ -20,15 +20,15 @@ slam = SLAM()
 
 default_path = './data/dataset/sequences/00/image_2/'
 frames_id = os.listdir(default_path)
-frames  = []
-for i in range(len(frames_id)):
+for i in range(len(frames_id)-1):
     path  = default_path + frames_id[i]
-    frame = Frame(path)
-    frames.append(frame)
-    if len(frames) > 1:
-        R,t = slam.feature_extractor(frame1=frames[-2], frame2=frames[-1])
+    path2 = default_path + frames_id[i+1]
+    frame1 = Frame(path)
+    frame2 = Frame(path2)
+    if True:
+        slam.feature_extractor(frame1=frame1, frame2=frame2)
         slam.draw_keypoints()
-        print(R)
+        #print(R)
     ##frame.show()
 
 
